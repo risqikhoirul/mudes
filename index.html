@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generator Mudes</title>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .paper{width:794px;background:#fff;color:#000;padding:72px 96px 96px;font-family:"Times New Roman","Liberation Serif",Tinos,serif;font-size:14.67px;line-height:1.35;box-shadow:0 1px 3px rgba(0,0,0,.12),0 8px 24px rgba(0,0,0,.08);transform-origin:top left}
+  .paper p{margin:0 0 10px;text-align:justify}
+  .paper .kop{text-align:center;font-weight:700;border-bottom:4px double #000;padding-bottom:6px;margin-bottom:22px}
+  .paper table{border-collapse:collapse;width:100%}
+  .paper .grid td,.paper .grid th{border:1px solid #000;padding:3px 6px;vertical-align:middle;word-break:break-word}
+  .paper .kv td{padding:2px 0;vertical-align:top}
+  .inp{width:100%;border:1px solid #d4d4d8;border-radius:.5rem;padding:.5rem .7rem;font-size:.875rem;background:#fff;color:#18181b;outline:none}
+  .inp:focus{border-color:#059669;box-shadow:0 0 0 3px rgba(5,150,105,.15)}
+  .inp.bad{border-color:#f59e0b;background:#fffbeb}
+  .lbl{display:block;font-size:.75rem;font-weight:600;color:#52525b;margin-bottom:.25rem}
+  .card{background:#fff;border:1px solid #e4e4e7;border-radius:.9rem;padding:1.1rem}
+  .btn{display:inline-flex;align-items:center;gap:.4rem;border-radius:.6rem;padding:.5rem .9rem;font-size:.875rem;font-weight:600;transition:.15s}
+  .btn-p{background:#059669;color:#fff}.btn-p:hover{background:#047857}
+  .btn-s{background:#fff;border:1px solid #d4d4d8;color:#3f3f46}.btn-s:hover{background:#f4f4f5}
+  .btn:disabled{opacity:.55;cursor:wait}
+  .sec{display:flex;align-items:center;gap:.6rem;font-weight:700;color:#18181b;margin-bottom:.9rem}
+  .sec b{display:grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:999px;background:#059669;color:#fff;font-size:.75rem}
+  @media (prefers-color-scheme: dark){
+    body{background:#09090b;color:#e4e4e7}
+    .card{background:#18181b;border-color:#27272a}
+    .inp{background:#09090b;border-color:#3f3f46;color:#e4e4e7}
+    .inp.bad{background:#2a2108}
+    .lbl{color:#a1a1aa}.sec{color:#fafafa}
+    .btn-s{background:#18181b;border-color:#3f3f46;color:#d4d4d8}.btn-s:hover{background:#27272a}
+  }
+</style>
+</head>
+<body class="bg-zinc-100 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-zinc-200 dark:bg-zinc-950/90 dark:border-zinc-800">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+    <div class="flex-1 min-w-0">
+      <h1 class="font-bold text-zinc-900 dark:text-zinc-50 leading-tight truncate">Generator Berita Acara Mudes</h1>
+      <p class="text-xs text-zinc-500 truncate">Musyawarah Desa · Penggantian PBP</p>
+    </div>
+    <button id="btnDocx" class="btn btn-s">Unduh DOCX</button>
+    <button id="btnPdf" class="btn btn-p">Unduh PDF</button>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-5 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] gap-5 items-start">
+
+  <!-- FORM -->
+  <div class="space-y-4">
+
+    <section class="card">
+      <div class="sec"><b>1</b>Lokasi</div>
+      <div class="relative">
+        <label class="lbl" for="q">Cari desa / kelurahan</label>
+        <input id="q" class="inp" autocomplete="off" placeholder="Ketik nama desa, mis. “sugihwaras” atau “ngraho”" disabled>
+        <ul id="sug" class="hidden absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-xl border border-zinc-200 bg-white shadow-lg dark:bg-zinc-900 dark:border-zinc-700"></ul>
+        <p id="wlStatus" class="text-xs text-zinc-500 mt-1">Memuat data wilayah…</p>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3 mt-3">
+        <div><label class="lbl">Kabupaten / Kota</label><select id="selKab" class="inp"></select></div>
+        <div><label class="lbl">Kecamatan</label><select id="selKec" class="inp"></select></div>
+        <div><label class="lbl">Desa / Kelurahan</label><select id="selDesa" class="inp"></select></div>
+      </div>
+      <details class="mt-3">
+        <summary class="text-sm font-semibold text-emerald-700 cursor-pointer select-none dark:text-emerald-400">Sumber data &amp; isi manual</summary>
+        <div class="grid sm:grid-cols-[1fr_auto] gap-2 items-end mt-2">
+          <div><label class="lbl">URL API</label><input class="inp" data-k="apiBase"></div>
+          <button id="wlReload" class="btn btn-s">Muat ulang</button>
+        </div>
+        <div class="grid sm:grid-cols-[7rem_1fr] gap-3 mt-3">
+          <div><label class="lbl">Jenis</label>
+            <select class="inp" data-k="jenis"><option>Desa</option><option>Kelurahan</option></select></div>
+          <div><label class="lbl">Nama desa</label><input class="inp" data-k="desa"></div>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-3 mt-3">
+          <div><label class="lbl">Kecamatan</label><input class="inp" data-k="kec"></div>
+          <div><label class="lbl">Kabupaten / Kota</label><input class="inp" data-k="kab"></div>
+        </div>
+      </details>
+      <details class="mt-3 group">
+        <summary class="text-sm font-semibold text-emerald-700 cursor-pointer select-none dark:text-emerald-400">Kop surat <span class="font-normal text-zinc-500">(otomatis, bisa diubah)</span></summary>
+        <textarea id="kop" rows="4" class="inp mt-2 font-mono text-xs"></textarea>
+        <div class="flex items-center justify-between mt-1">
+          <p class="text-xs text-zinc-500">Baris 1–3 tebal; baris berikutnya (alamat) kecil.</p>
+          <button id="kopReset" class="text-xs text-emerald-700 font-semibold dark:text-emerald-400">Kembalikan otomatis</button>
+        </div>
+      </details>
+    </section>
+
+    <section class="card">
+      <div class="sec"><b>2</b>Nomor &amp; waktu</div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="lbl">Nomor surat</label><input class="inp" data-k="nomor" placeholder="mis. 140/012/BA/X/2026"></div>
+        <div><label class="lbl">Tanggal musyawarah</label><input type="date" class="inp" data-k="tanggal"></div>
+      </div>
+      <label class="flex items-center gap-2 mt-3 text-sm text-zinc-700 dark:text-zinc-300"><input type="checkbox" data-k="kosongTgl" class="rounded"> Kosongkan hari &amp; tanggal (diisi tulis tangan)</label>
+      <div class="mt-3"><label class="lbl">Alokasi PBP</label><input class="inp" data-k="alokasi" placeholder="Juli-September 2026"></div>
+    </section>
+
+    <section class="card">
+      <div class="sec"><b>3</b>Kepala Desa &amp; Kepala Dusun</div>
+      <div><label class="lbl" id="lblKades">Nama Kepala Desa</label><input class="inp" data-k="kades"></div>
+      <div class="mt-3 space-y-2" id="dusunList"></div>
+      <button id="addDusun" class="btn btn-s mt-3">+ Tambah Kepala Dusun</button>
+    </section>
+
+    <section class="card">
+      <div class="sec"><b>4</b>Penerima pengganti</div>
+
+      <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3 dark:bg-emerald-950/30 dark:border-emerald-900">
+        <p class="text-sm font-semibold text-emerald-900 dark:text-emerald-300">Ambil dari route PBP</p>
+        <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">Pilih desa di langkah 1 → BAST dicari lewat /filters, lalu data pengganti langsung diambil dari /pbp.</p>
+        <div class="grid grid-cols-2 gap-3 mt-2">
+          <div><label class="lbl">Bulan alokasi</label><input type="number" min="1" max="12" class="inp" data-k="bulan"></div>
+          <div><label class="lbl">Tahun alokasi</label><input type="number" class="inp" data-k="tahun"></div>
+        </div>
+        <div class="mt-3">
+          <label class="lbl">BAST</label>
+          <div class="flex gap-2">
+            <select id="bastSel" class="inp"><option value="">— pilih desa dulu —</option></select>
+            <button id="bastReload" class="btn btn-s shrink-0">Muat</button>
+          </div>
+          <p id="bastMsg" class="text-xs text-zinc-500 mt-1"></p>
+        </div>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm text-zinc-700 dark:text-zinc-300">
+          <span class="font-medium">Sertakan:</span>
+          <label class="flex items-center gap-1.5"><input type="checkbox" checked disabled> Pengganti (G)</label>
+          <label class="flex items-center gap-1.5"><input type="checkbox" data-k="incBk"> Perwakilan (BK)</label>
+          <label class="flex items-center gap-1.5"><input type="checkbox" data-k="incSk"> Perwakilan (SK)</label>
+        </div>
+        <div class="flex items-center gap-3 mt-3">
+          <button id="btnFetch" class="btn btn-p">Ambil data pengganti</button>
+          <span id="fetchMsg" class="text-sm text-zinc-600 dark:text-zinc-400"></span>
+        </div>
+        <details class="mt-3">
+          <summary class="text-xs font-semibold text-zinc-600 cursor-pointer dark:text-zinc-400">Lanjutan: body filters &amp; respons mentah</summary>
+          <label class="lbl mt-2">Body POST /filters (JSON)</label>
+          <textarea class="inp font-mono text-xs" rows="3" data-k="filterBody"></textarea>
+          <p class="text-[11px] text-zinc-500 mt-1">Token: {{provinsi}} {{kabupaten}} {{kecamatan}} {{kelurahan}} {{bulan}} {{tahun}} (kode wilayah).</p>
+          <label class="lbl mt-2">Bast id manual</label><input class="inp" data-k="bastId">
+          <pre id="rawFilters" class="mt-2 max-h-48 overflow-auto rounded-lg bg-zinc-900 text-zinc-100 text-[11px] p-2 hidden"></pre>
+        </details>
+      </div>
+
+      <div class="grid sm:grid-cols-[1fr_auto] gap-2 items-end mt-4">
+        <div><label class="lbl">Kriteria penerima (bawaan)</label><input class="inp" data-k="kriteria" placeholder="diisi ke baris yang masih kosong"></div>
+        <button id="applyKrit" class="btn btn-s">Terapkan</button>
+      </div>
+
+      <div class="overflow-x-auto mt-4 -mx-1 px-1">
+        <table class="w-full text-sm min-w-[560px]">
+          <thead><tr class="text-left text-xs text-zinc-500"><th class="w-8 pb-1">No</th><th class="pb-1">Nama</th><th class="pb-1 w-40">NIK</th><th class="pb-1 w-40">No. KK</th><th class="pb-1 w-32">Kriteria</th><th class="w-6"></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 mt-3">
+        <button id="addRow" class="btn btn-s">+ Tambah baris</button>
+        <button id="clearRows" class="btn btn-s">Kosongkan daftar</button>
+        <span id="rowCount" class="text-xs text-zinc-500 ml-auto"></span>
+      </div>
+
+      <details class="mt-4">
+        <summary class="text-sm font-semibold text-emerald-700 cursor-pointer select-none dark:text-emerald-400">Tempel dari Excel / Sheets</summary>
+        <textarea id="paste" rows="4" class="inp mt-2 font-mono text-xs" placeholder="Kolom: Nama [tab] NIK [tab] No. KK [tab] Kriteria (opsional) — satu penerima per baris"></textarea>
+        <button id="btnPaste" class="btn btn-s mt-2">Tambahkan ke daftar</button>
+      </details>
+    </section>
+
+    <div class="flex items-center justify-between text-xs text-zinc-500 pb-6">
+      <span>Data tersimpan otomatis di browser ini.</span>
+      <button id="resetAll" class="font-semibold text-red-600 hover:underline">Reset semua</button>
+    </div>
+    <p class="text-[11px] text-zinc-400 pb-8 -mt-4">Data wilayah: Kepmendagri No 300.2.2-2138 Tahun 2025 via cahyadsn/wilayah (MIT).</p>
+  </div>
+
+  <!-- PREVIEW -->
+  <aside class="lg:sticky lg:top-20">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Pratinjau</h2>
+      <span class="text-xs text-zinc-500">A4 · Times New Roman 11 pt</span>
+    </div>
+    <div id="pvWrap" class="lg:max-h-[calc(100vh-7.5rem)] overflow-y-auto overflow-x-hidden rounded-xl bg-zinc-300/60 dark:bg-zinc-800 p-2">
+      <div id="pvBox" style="position:relative"><div id="paper" class="paper"></div></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+(() => {
+'use strict';
+const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ------------------------------------------------------------ state */
+const LS = 'mudes.v3';
+const DEF_API = 'https://antiquewhite-reindeer-195837.hostingersite.com/api';
+const DEF_BODY = '{"alokasi_bulan":{{bulan}},"alokasi_tahun":{{tahun}},"kode_provinsi":"{{provinsi}}","kode_kabupaten":"{{kabupaten}}","kode_kecamatan":"{{kecamatan}}","kelurahan":"{{kelurahan}}"}';
+const blank = () => ({
+  jenis:'Desa', desa:'', kec:'', kab:'', prov:'', kopManual:false, kopText:'',
+  nomor:'', tanggal:new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10), kosongTgl:false,
+  alokasi:'Juli-September 2026', kades:'',
+  dusun:[{d:'',n:''},{d:'',n:''},{d:'',n:''},{d:'',n:''}],
+  rows:[], kriteria:'', apiBase:DEF_API, filterBody:DEF_BODY, bulan:9, tahun:2026, kodeKab:'', kodeKec:'', kodeDesa:'', bastId:'', incBk:false, incSk:false
+});
+let S = blank();
+try { const raw = localStorage.getItem(LS); if (raw) S = Object.assign(blank(), JSON.parse(raw)); } catch(e){}
+let saveT; const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { try{ localStorage.setItem(LS, JSON.stringify(S)); }catch(e){} }, 300); };
+
+/* ------------------------------------------------------------ helpers */
+const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const HARI  = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const SAT = ['Nol','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan','Sepuluh','Sebelas'];
+function terbilang(n){
+  if (n < 12) return SAT[n];
+  if (n < 20) return terbilang(n-10)+' Belas';
+  if (n < 100) return terbilang(Math.floor(n/10))+' Puluh'+(n%10?' '+terbilang(n%10):'');
+  if (n < 200) return 'Seratus'+(n>100?' '+terbilang(n-100):'');
+  if (n < 1000) return terbilang(Math.floor(n/100))+' Ratus'+(n%100?' '+terbilang(n%100):'');
+  if (n < 2000) return 'Seribu'+(n>1000?' '+terbilang(n-1000):'');
+  return terbilang(Math.floor(n/1000))+' Ribu'+(n%1000?' '+terbilang(n%1000):'');
+}
+const tc = s => { s = (s||'').trim().replace(/\s+/g,' '); return s && s === s.toUpperCase() ? s.toLowerCase().replace(/(^|[\s\-.(])([a-z])/g,(m,a,b)=>a+b.toUpperCase()) : s; };
+const stripPre = (s,re) => tc(s).replace(re,'').trim();
+const kabFull = s => { s = tc(s); return !s ? '' : /^(kabupaten|kota|kab\.?)\s/i.test(s) ? s.replace(/^kab\.?\s/i,'Kabupaten ') : 'Kabupaten '+s; };
+const kecName = s => stripPre(s,/^kecamatan\s+/i);
+const desaName = s => stripPre(s,/^(desa|kelurahan)\s+/i);
+const DOT = '……';
+
+/* ------------------------------------------------------------ model */
+function kopLines(){
+  if (S.kopManual && S.kopText.trim()) return S.kopText.split('\n').map(l=>l.trim()).filter(Boolean);
+  return autoKop();
+}
+function autoKop(){
+  const kab = kabFull(S.kab), kec = kecName(S.kec), des = desaName(S.desa);
+  const l = [];
+  l.push(kab ? 'PEMERINTAH '+kab.toUpperCase() : 'PEMERINTAH KABUPATEN ……');
+  l.push(kec ? 'KECAMATAN '+kec.toUpperCase() : 'KECAMATAN ……');
+  l.push(des ? S.jenis.toUpperCase()+' '+des.toUpperCase() : S.jenis.toUpperCase()+' ……');
+  return l;
+}
+function model(){
+  const jenis = S.jenis, des = desaName(S.desa), kec = kecName(S.kec), kab = kabFull(S.kab);
+  const nm = (v,ph=DOT) => (v && v.trim()) ? v.trim() : ph;
+  const D = nm(des), K = nm(kec), B = nm(kab);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(S.tanggal||'');
+  let hari = DOT, tgl = DOT, bulan = DOT, tahun = DOT, num = '..-..-....';
+  if (m){
+    const dt = new Date(+m[1], +m[2]-1, +m[3]);
+    bulan = BULAN[+m[2]-1]; tahun = terbilang(+m[1]);
+    if (!S.kosongTgl){ hari = HARI[dt.getDay()]; tgl = terbilang(+m[3]); num = `${m[3]}-${m[2]}-${m[1]}`; }
+    else num = `....-${m[2]}-${m[1]}`;
+  }
+  const kades = jenis==='Desa' ? 'Kepala Desa' : 'Lurah';
+  const kantor = jenis==='Desa' ? 'Kantor Balai Desa' : 'Kantor Kelurahan';
+  const dusun = S.dusun;
+  const kv = [[kades, S.kades.trim()]].concat(dusun.map(x => ['Kepala Dusun'+(x.d.trim()?' '+x.d.trim():''), x.n.trim()]));
+  const rows = S.rows.map(r => [r.nama, r.nik, r.kk, r.kr]);
+  while (rows.length < 5) rows.push(['','','','']);
+  const sign = [{t:'1. '+kades.toUpperCase(), n:S.kades.trim()}].concat(dusun.map((x,i)=>({t:`${i+2}. KEPALA DUSUN ${(x.d.trim()||DOT).toUpperCase()}`, n:x.n.trim()})));
+  const lokasi = `${jenis} ${D} Kecamatan ${K}, ${B}`;
+  return {
+    kop: kopLines(),
+    title: 'BERITA ACARA KEPUTUSAN HASIL MUSYAWARAH',
+    nomor: 'Nomor :'+(S.nomor.trim()?' '+S.nomor.trim():''),
+    p1: [{t:`Pada hari ini ${hari} tanggal ${tgl} bulan ${bulan} tahun ${tahun} (${num}) bertempat di ${kantor} ${D}, Kecamatan ${K}, ${B}, kami yang bertanda tangan di bawah :`}],
+    kv,
+    p2: [
+      {t:`Atas nama warga masyarakat ${lokasi} (Daftar Hadir Musyawarah Terlampir), telah melaksanakan musyawarah dalam rangka penggantian Penerima Bantuan Pangan (PBP) Alokasi ${nm(S.alokasi)}. Berdasarkan musyawarah seluruh peserta musyawarah secara mufakat menyepakati dan memutuskan bahwa pihak-pihak yang tersebut di bawah ini layak menjadi PBP Pengganti dan melakukan `},
+      {t:'pengambilan Bantuan Pangan', b:true},
+      {t:' sesuai dengan ketentuan yang telah ditetapkan. Dengan daftar penerima sebagai berikut :'}
+    ],
+    head: ['No','Nama','Nomor NIK','Nomor Kartu Keluarga','Kriteria Penerima'],
+    cols: [560,2200,2100,2100,2066],
+    rows,
+    p3: [{t:`Demikian Berita Acara Hasil Keputusan Musyawarah ini dibuat dan ditandatangani bersama atas nama seluruh warga masyarakat ${jenis} ${D} pada tanggal tersebut di atas.`}],
+    signTitle: 'TANDA TANGAN DAFTAR HADIR',
+    sign,
+    fname: 'Mudes_'+(des||'Desa').replace(/[^\w]+/g,'_')+'_'+(S.tanggal||'')
+  };
+}
+
+/* ------------------------------------------------------------ preview */
+const runsHtml = r => r.map(x => x.b ? `<b>${esc(x.t)}</b>` : esc(x.t)).join('');
+function renderPreview(){
+  const m = model();
+  const kop = m.kop.map((l,i)=>`<div style="font-size:${i<3?(i===2?20:17.5):12.5}px;font-weight:${i<3?700:400};line-height:1.3">${esc(l)}</div>`).join('');
+  const kv = m.kv.map(([a,b])=>`<tr><td style="width:36%">${esc(a)}</td><td style="width:14px">:</td><td>${esc(b)}</td></tr>`).join('');
+  const total = m.cols.reduce((a,b)=>a+b,0);
+  const colg = m.cols.map(c=>`<col style="width:${(c/total*100).toFixed(2)}%">`).join('');
+  const rows = m.rows.map((r,i)=>`<tr style="height:25px"><td style="text-align:center">${i+1}.</td><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`).join('');
+  const cells = m.sign.map(s=>`<td style="width:50%;height:118px;vertical-align:top;text-align:center;padding:6px"><div>${esc(s.t)}</div><div style="margin-top:78px">(${s.n?esc(s.n):'....................................'})</div></td>`);
+  if (cells.length % 2) cells.push('<td style="width:50%"></td>');
+  let sg = ''; for (let i=0;i<cells.length;i+=2) sg += `<tr>${cells[i]}${cells[i+1]}</tr>`;
+  $('#paper').innerHTML = `
+    <div class="kop">${kop}</div>
+    <p style="text-align:center;margin-bottom:0"><b><u>${esc(m.title)}</u></b></p>
+    <p style="text-align:center"><b>${esc(m.nomor)}</b></p>
+    <p>${runsHtml(m.p1)}</p>
+    <table class="kv" style="margin-bottom:10px">${kv}</table>
+    <p>${runsHtml(m.p2)}</p>
+    <table class="grid" style="margin-bottom:14px"><colgroup>${colg}</colgroup>
+      <thead><tr>${m.head.map(h=>`<th style="font-weight:700;padding:5px">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>
+    <p>${runsHtml(m.p3)}</p>
+    <p style="text-align:center;margin:26px 0 8px"><b>${esc(m.signTitle)}</b></p>
+    <table class="grid">${sg}</table>`;
+  fitPreview();
+}
+function fitPreview(){
+  const wrap = $('#pvWrap'), box = $('#pvBox'), paper = $('#paper');
+  const avail = wrap.clientWidth - 16 - (wrap.scrollHeight > wrap.clientHeight ? 10 : 0);
+  const sc = Math.min(1, avail / 794);
+  paper.style.transform = `scale(${sc})`;
+  box.style.height = (paper.offsetHeight * sc) + 'px';
+  box.style.width = (794*sc) + 'px';
+}
+new ResizeObserver(fitPreview).observe($('#pvWrap'));
+
+/* ------------------------------------------------------------ form binding */
+function syncForm(){
+  document.querySelectorAll('[data-k]').forEach(el => {
+    const k = el.dataset.k;
+    if (el.type === 'checkbox') el.checked = !!S[k]; else el.value = S[k] ?? '';
+  });
+  $('#kop').value = S.kopManual ? S.kopText : autoKop().join('\n');
+  $('#lblKades').textContent = S.jenis==='Desa' ? 'Nama Kepala Desa' : 'Nama Lurah';
+  const bs = $('#bastSel'); if (bs && S.bastId && [...bs.options].some(o=>o.value===S.bastId)) bs.value = S.bastId;
+}
+document.querySelectorAll('[data-k]').forEach(el => {
+  el.addEventListener(el.type==='checkbox'||el.tagName==='SELECT'?'change':'input', () => {
+    const k = el.dataset.k;
+    S[k] = el.type === 'checkbox' ? el.checked : el.type==='number' ? (el.value===''?'':+el.value) : el.value;
+    if (['jenis','desa','kec','kab'].includes(k) && !S.kopManual) $('#kop').value = autoKop().join('\n');
+    if (k==='jenis') $('#lblKades').textContent = S.jenis==='Desa' ? 'Nama Kepala Desa' : 'Nama Lurah';
+    update();
+  });
+});
+$('#kop').addEventListener('input', e => { S.kopManual = true; S.kopText = e.target.value; update(); });
+$('#kopReset').addEventListener('click', () => { S.kopManual = false; S.kopText=''; $('#kop').value = autoKop().join('\n'); update(); });
+
+/* dusun */
+function renderDusun(){
+  $('#dusunList').innerHTML = S.dusun.map((x,i)=>`
+    <div class="grid grid-cols-[1fr_1.4fr_auto] gap-2 items-end">
+      <div>${i===0?'<label class="lbl">Nama dusun</label>':''}<input class="inp" data-di="${i}" data-f="d" value="${esc(x.d)}" placeholder="Dusun ${i+1}"></div>
+      <div>${i===0?'<label class="lbl">Nama Kepala Dusun</label>':''}<input class="inp" data-di="${i}" data-f="n" value="${esc(x.n)}"></div>
+      <button class="h-9 w-9 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50" data-rmd="${i}" title="Hapus">✕</button>
+    </div>`).join('');
+}
+$('#dusunList').addEventListener('input', e => { const t=e.target; if (t.dataset.di!==undefined){ S.dusun[+t.dataset.di][t.dataset.f]=t.value; update(); }});
+$('#dusunList').addEventListener('click', e => { const b=e.target.closest('[data-rmd]'); if(b){ S.dusun.splice(+b.dataset.rmd,1); renderDusun(); update(); }});
+$('#addDusun').addEventListener('click', () => { S.dusun.push({d:'',n:''}); renderDusun(); update(); });
+
+/* penerima */
+const digits = s => String(s||'').replace(/\D/g,'');
+function renderRows(){
+  $('#rows').innerHTML = S.rows.map((r,i)=>`
+    <tr class="align-top">
+      <td class="py-1 pr-1 text-zinc-500">${i+1}</td>
+      <td class="py-1 pr-1"><input class="inp" data-ri="${i}" data-f="nama" value="${esc(r.nama)}"></td>
+      <td class="py-1 pr-1"><input class="inp ${r.nik&&digits(r.nik).length!==16?'bad':''}" inputmode="numeric" data-ri="${i}" data-f="nik" value="${esc(r.nik)}"></td>
+      <td class="py-1 pr-1"><input class="inp ${r.kk&&digits(r.kk).length!==16?'bad':''}" inputmode="numeric" data-ri="${i}" data-f="kk" value="${esc(r.kk)}"></td>
+      <td class="py-1 pr-1"><input class="inp" data-ri="${i}" data-f="kr" value="${esc(r.kr)}"></td>
+      <td class="py-1"><button class="h-9 w-7 text-zinc-400 hover:text-red-600" data-rmr="${i}" title="Hapus">✕</button></td>
+    </tr>`).join('') || '<tr><td colspan="6" class="py-4 text-center text-sm text-zinc-400">Belum ada penerima — ambil dari PBP, tempel dari Excel, atau tambah baris.</td></tr>';
+  const bad = S.rows.filter(r=>(r.nik&&digits(r.nik).length!==16)||(r.kk&&digits(r.kk).length!==16)).length;
+  $('#rowCount').textContent = S.rows.length ? `${S.rows.length} penerima` + (bad?` · ${bad} baris NIK/KK ≠ 16 digit`:'') : '';
+}
+$('#rows').addEventListener('input', e => { const t=e.target; if (t.dataset.ri!==undefined){
+  S.rows[+t.dataset.ri][t.dataset.f]=t.value;
+  if (t.dataset.f==='nik'||t.dataset.f==='kk') t.classList.toggle('bad', !!t.value && digits(t.value).length!==16);
+  update(); }});
+$('#rows').addEventListener('click', e => { const b=e.target.closest('[data-rmr]'); if(b){ S.rows.splice(+b.dataset.rmr,1); renderRows(); update(); }});
+$('#addRow').addEventListener('click', () => { S.rows.push({nama:'',nik:'',kk:'',kr:S.kriteria}); renderRows(); update(); });
+$('#clearRows').addEventListener('click', () => { if (!S.rows.length || confirm('Kosongkan seluruh daftar penerima?')){ S.rows=[]; renderRows(); update(); }});
+$('#applyKrit').addEventListener('click', () => { S.rows.forEach(r=>{ if(!r.kr) r.kr=S.kriteria; }); renderRows(); update(); });
+
+function addRows(list){
+  const seen = new Set(S.rows.map(r=>digits(r.nik)).filter(Boolean)); let n=0, dup=0;
+  for (const r of list){
+    const k = digits(r.nik);
+    if (k && seen.has(k)){ dup++; continue; }
+    if (k) seen.add(k);
+    S.rows.push({nama:(r.nama||'').trim(), nik:k||String(r.nik||'').trim(), kk:digits(r.kk)||String(r.kk||'').trim(), kr:r.kr||S.kriteria||''}); n++;
+  }
+  renderRows(); update(); return {n,dup};
+}
+$('#btnPaste').addEventListener('click', () => {
+  const list = $('#paste').value.split(/\r?\n/).map(l=>l.split('\t')).filter(c=>c.some(x=>x.trim()))
+    .filter(c=>!/^nama$/i.test((c[0]||'').trim()))
+    .map(c=>({nama:c[0]||'',nik:c[1]||'',kk:c[2]||'',kr:(c[3]||'').trim()}));
+  const {n,dup} = addRows(list); $('#paste').value='';
+  $('#fetchMsg').textContent = `${n} baris ditambahkan${dup?`, ${dup} duplikat dilewati`:''}.`;
+});
+
+/* ambil dari route PBP */
+$('#btnFetch').addEventListener('click', async () => {
+  const msg = $('#fetchMsg'), btn = $('#btnFetch');
+  const bast = (S.bastId||'').trim();
+  if (!bast){ msg.textContent = 'Pilih BAST dulu.'; return; }
+  btn.disabled = true; msg.textContent = 'Mengambil data…'; const base = S.apiBase;
+  try {
+    const res = await fetch(api('/pbp?bast_id='+encodeURIComponent(bast)));
+    const j = await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(j.error || 'HTTP '+res.status);
+    const want = new Set(['g']); if (S.incBk) want.add('bk'); if (S.incSk) want.add('sk');
+    const list = (j.results||[]).filter(it => it._badge_type ? want.has(it._badge_type) : /pengganti/i.test(it.status_pbp||''))
+      .map(it => ({ nama: it.nama_pengganti || it.nama, nik: it.nik_pengganti || it.nik, kk: it.no_kk_pengganti || it.no_kk }));
+    if (!list.length){ msg.textContent = `Tidak ada penerima pengganti dari ${(j.results||[]).length} data PBP.`; return; }
+    const {n,dup} = addRows(list);
+    msg.textContent = `${n} pengganti ditambahkan${dup?`, ${dup} duplikat dilewati`:''}.`;
+  } catch(err){
+    msg.textContent = /fetch|network/i.test(err.message) ? `Tidak bisa terhubung ke ${base}.` : 'Gagal: '+err.message;
+  } finally { btn.disabled = false; }
+});
+
+/* ------------------------------------------------------------ wilayah (API) */
+const api = p => (S.apiBase||'').trim().replace(/\/+$/,'') + p;
+let KAB=[], KEC=[], KEL=[], KECM={}, KABM={}, PROVM={};
+const sug = $('#sug'), q = $('#q'); let hits = [], hi = -1, qt;
+const opt = (v,t,sel) => `<option value="${esc(v)}"${sel?' selected':''}>${esc(t)}</option>`;
+
+async function loadWilayah(){
+  const st = $('#wlStatus'); st.textContent = 'Memuat data wilayah…'; q.disabled = true;
+  try {
+    const r = await fetch(api('/wilayah')); const j = await r.json().catch(()=>({}));
+    if (!r.ok) throw new Error(j.error || 'HTTP '+r.status);
+    const R = j.results || j;
+    KAB = R.kabupaten||[]; KEC = R.kecamatan||[]; const kl = R.kelurahan||[];
+    PROVM = {}; (R.provinsi||[]).forEach(p=>PROVM[p.kode]=p);
+    KABM = {}; KAB.forEach(k=>KABM[k.kode]=k); KECM = {}; KEC.forEach(k=>KECM[k.kode]=k);
+    KEL = kl.map(k => { const kc = KECM[k.kode_kecamatan]||{}, kb = KABM[kc.kode_kabkota]||{};
+      return {kode:k.kode, nama:k.nama, kec:kc, kab:kb, key:norm(k.nama+' '+(kc.nama||'')+' '+(kb.nama||''))}; });
+    st.textContent = `${KEL.length.toLocaleString('id-ID')} desa/kelurahan · ${KEC.length} kecamatan · ${KAB.length} kabupaten/kota dimuat.`;
+    q.disabled = false;
+    renderSelects();
+    if (S.kodeDesa && !KEL.find(k=>k.kode===S.kodeDesa)) { S.kodeDesa=''; }
+  } catch(err){
+    const fileMode = location.protocol === 'file:';
+    st.textContent = 'Gagal memuat wilayah: '+err.message+'. '+(fileMode ? 'Halaman dibuka dari file lokal (file://) — Safari/Chrome sering memblokir request ke server lain. Jalankan lewat http (mis. letakkan di server yang sama dengan API) lalu muat ulang.' : 'Kemungkinan server tidak mengirim header CORS atau API tidak bisa dijangkau dari browser. Cek tab Network, atau isi manual lewat “Sumber data & isi manual”.');
+  }
+}
+function renderSelects(){
+  const multiProv = Object.keys(PROVM).length > 1;
+  $('#selKab').innerHTML = opt('','— pilih —') + KAB.map(k=>opt(k.kode,(multiProv&&PROVM[k.kode_provinsi]?PROVM[k.kode_provinsi].nama+' · ':'')+tc(k.nama),k.kode===S.kodeKab)).join('');
+  const kecs = KEC.filter(k=>!S.kodeKab || k.kode_kabkota===S.kodeKab);
+  $('#selKec').innerHTML = opt('','— pilih —') + kecs.map(k=>opt(k.kode,tc(k.nama),k.kode===S.kodeKec)).join('');
+  const dss = S.kodeKec ? KEL.filter(k=>k.kec.kode===S.kodeKec) : [];
+  $('#selDesa').innerHTML = opt('', S.kodeKec?'— pilih —':'— pilih kecamatan —') + dss.map(k=>opt(k.kode,tc(k.nama),k.kode===S.kodeDesa)).join('');
+}
+function applyNames(){
+  const kl = KEL.find(k=>k.kode===S.kodeDesa), kc = KECM[S.kodeKec], kb = KABM[S.kodeKab];
+  S.desa = kl ? tc(kl.nama) : ''; S.kec = kc ? tc(kc.nama) : ''; S.kab = kb ? tc(kb.nama) : '';
+}
+function afterLokasi(){ applyNames(); syncForm(); renderSelects(); update(); if (S.kodeDesa) loadBast(true); else resetBast(); }
+$('#selKab').addEventListener('change', e => { S.kodeKab = e.target.value; S.kodeKec=''; S.kodeDesa=''; afterLokasi(); });
+$('#selKec').addEventListener('change', e => { S.kodeKec = e.target.value; const kc=KECM[S.kodeKec]; if (kc) S.kodeKab = kc.kode_kabkota; S.kodeDesa=''; afterLokasi(); });
+$('#selDesa').addEventListener('change', e => { S.kodeDesa = e.target.value; afterLokasi(); });
+$('#wlReload').addEventListener('click', loadWilayah);
+
+function search(text){
+  const toks = norm(text).split(' ').filter(Boolean); if (!toks.length) return [];
+  const out = [];
+  KEL.forEach((k,i) => { if (toks.every(t=>k.key.includes(t))){
+    const nm = norm(k.nama); out.push([nm===toks.join(' ')?0:nm.startsWith(toks[0])?1:nm.includes(toks[0])?2:3, i]); }});
+  out.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  return out.slice(0,40).map(x=>x[1]);
+}
+function showSug(){
+  if (!hits.length){ sug.innerHTML = '<li class="px-3 py-3 text-sm text-zinc-500">Tidak ditemukan di data Anda.</li>'; sug.classList.toggle('hidden', !q.value.trim()); return; }
+  sug.innerHTML = hits.map((vi,n)=>{ const k=KEL[vi];
+    return `<li data-n="${n}" class="px-3 py-2 cursor-pointer ${n===hi?'bg-emerald-50 dark:bg-emerald-950/40':''} hover:bg-emerald-50 dark:hover:bg-emerald-950/40">
+      <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">${esc(tc(k.nama))}</div>
+      <div class="text-xs text-zinc-500">Kec. ${esc(tc(k.kec.nama||''))} · ${esc(tc(k.kab.nama||''))}</div></li>`; }).join('');
+  sug.classList.remove('hidden');
+  const a = sug.querySelector('.bg-emerald-50'); if (a) a.scrollIntoView({block:'nearest'});
+}
+function pick(n){
+  const k = KEL[hits[n]]; if (!k) return;
+  S.kodeDesa = k.kode; S.kodeKec = k.kec.kode||''; S.kodeKab = k.kab.kode||'';
+  q.value=''; sug.classList.add('hidden'); hits=[]; hi=-1; afterLokasi();
+}
+q.addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(() => { hits = search(q.value); hi = hits.length?0:-1; showSug(); }, 120); });
+q.addEventListener('keydown', e => {
+  if (e.key==='ArrowDown'){ e.preventDefault(); hi=Math.min(hi+1,hits.length-1); showSug(); }
+  else if (e.key==='ArrowUp'){ e.preventDefault(); hi=Math.max(hi-1,0); showSug(); }
+  else if (e.key==='Enter'){ e.preventDefault(); pick(hi); }
+  else if (e.key==='Escape'){ sug.classList.add('hidden'); }
+});
+sug.addEventListener('mousedown', e => { const li=e.target.closest('li[data-n]'); if(li){ e.preventDefault(); pick(+li.dataset.n); }});
+document.addEventListener('click', e => { if (!e.target.closest('#q,#sug')) sug.classList.add('hidden'); });
+q.addEventListener('focus', () => { if (hits.length) sug.classList.remove('hidden'); });
+
+/* ------------------------------------------------------------ BAST dari /filters */
+let BASTS = [];
+function resetBast(){ BASTS=[]; $('#bastSel').innerHTML = '<option value="">— pilih desa dulu —</option>'; $('#bastMsg').textContent=''; }
+function findBast(o){
+  const arrs = [];
+  (function walk(x,key){
+    if (Array.isArray(x)){ if (x.length && x.every(i=>i && typeof i==='object' && !Array.isArray(i))) arrs.push({key,arr:x}); x.forEach(i=>walk(i,key)); }
+    else if (x && typeof x==='object') Object.keys(x).forEach(k=>walk(x[k],k));
+  })(o,'');
+  const pick = arrs.find(a=>a.arr.some(i=>'bast_id' in i)) || arrs.find(a=>/bast/i.test(a.key)) || arrs[0];
+  if (!pick) return [];
+  return pick.arr.map(i => {
+    const id = i.bast_id ?? i.id ?? i.value ?? i.kode;
+    const parts = Object.entries(i).filter(([k,v])=>k!==('bast_id' in i?'bast_id':'id') && (typeof v==='string'||typeof v==='number') && String(v).length<60).slice(0,4).map(([k,v])=>String(v));
+    return {id:String(id), label: parts.join(' · ') || String(id)};
+  }).filter(x=>x.id && x.id!=='undefined');
+}
+async function loadBast(auto){
+  const msg = $('#bastMsg'), sel = $('#bastSel'), raw = $('#rawFilters');
+  if (!S.kodeDesa){ msg.textContent='Pilih desa dulu.'; return; }
+  let body;
+  try {
+    const t = (S.filterBody||DEF_BODY).replace(/\{\{(\w+)\}\}/g,(m,k)=>({provinsi:S.kodeDesa.split('.')[0],kabupaten:S.kodeDesa.split('.').slice(0,2).join('.'),kecamatan:S.kodeDesa.split('.').slice(0,3).join('.'),kelurahan:S.kodeDesa,bulan:S.bulan,tahun:S.tahun}[k] ?? ''));
+    body = JSON.parse(t);
+  } catch(e){ msg.textContent = 'Body filters bukan JSON valid: '+e.message; return; }
+  msg.textContent = 'Memuat BAST…'; sel.innerHTML = '<option>Memuat…</option>';
+  try {
+    const r = await fetch(api('/filters'), {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(body)});
+    const txt = await r.text(); let j; try{ j = JSON.parse(txt); }catch(e){ j = null; }
+    raw.textContent = txt.slice(0,4000); raw.classList.remove('hidden');
+    if (!r.ok) throw new Error((j && j.error) || 'HTTP '+r.status);
+    const kid = j && (j.results?.id || j.results?.file_bast_pbp || j.id);
+    BASTS = kid ? [{id:String(kid), label:'BAST '+kid}] : findBast(j);
+    if (!BASTS.length){ sel.innerHTML='<option value="">— tidak ada BAST —</option>'; msg.textContent='BAST tidak ditemukan di respons filters. Cek “respons mentah” di Lanjutan, atau isi bast id manual.'; return; }
+    sel.innerHTML = '<option value="">— pilih BAST —</option>' + BASTS.map(b=>opt(b.id,b.label,b.id===S.bastId)).join('');
+    if (BASTS.length===1 || !BASTS.find(b=>b.id===S.bastId)){ if (BASTS.length===1){ S.bastId=BASTS[0].id; sel.value=S.bastId; } else { S.bastId=''; } syncForm(); save(); }
+    msg.textContent = `${BASTS.length} BAST ditemukan.`;
+    if (BASTS.length===1 && auto) { S.rows=[]; renderRows(); update(); $('#btnFetch').click(); }
+  } catch(err){
+    sel.innerHTML='<option value="">— gagal —</option>';
+    msg.textContent = /fetch|network/i.test(err.message) ? 'Tidak bisa terhubung ke API.' : 'Gagal: '+err.message;
+  }
+}
+$('#bastSel').addEventListener('change', e => { S.bastId = e.target.value; syncForm(); save(); });
+$('#bastReload').addEventListener('click', () => loadBast(false));
+
+/* ------------------------------------------------------------ export DOCX */
+function dl(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500); }
+
+async function exportDocx(m){
+  const d = window.docx;
+  const F = 'Times New Roman';
+  const run = (t,o={}) => new d.TextRun(Object.assign({text:t,font:F,size:22},o));
+  const para = (runs,o={}) => new d.Paragraph(Object.assign({children:runs,spacing:{after:140,line:276}},o));
+  const none = {style:d.BorderStyle.NONE,size:0,color:'FFFFFF'};
+  const line = {style:d.BorderStyle.SINGLE,size:4,color:'000000'};
+  const allB = {top:line,bottom:line,left:line,right:line};
+
+  const header = new d.Header({children: m.kop.map((l,i)=>{
+    const last = i===m.kop.length-1;
+    return new d.Paragraph({alignment:d.AlignmentType.CENTER,spacing:{after:0},
+      border: last ? {bottom:{style:d.BorderStyle.DOUBLE,size:6,space:6,color:'000000'}} : undefined,
+      children:[run(l,{bold:i<3,size:i<3?(i===2?30:26):19})]});
+  })});
+
+  const kvTable = new d.Table({
+    width:{size:9026,type:d.WidthType.DXA}, columnWidths:[3300,300,5426],
+    borders:{top:none,bottom:none,left:none,right:none,insideHorizontal:none,insideVertical:none},
+    rows: m.kv.map(([a,b]) => new d.TableRow({children:[
+      new d.TableCell({width:{size:3300,type:d.WidthType.DXA},borders:{top:none,bottom:none,left:none,right:none},children:[para([run(a)],{spacing:{after:60}})]}),
+      new d.TableCell({width:{size:300,type:d.WidthType.DXA},borders:{top:none,bottom:none,left:none,right:none},children:[para([run(':')],{spacing:{after:60}})]}),
+      new d.TableCell({width:{size:5426,type:d.WidthType.DXA},borders:{top:none,bottom:none,left:none,right:none},children:[para([run(b)],{spacing:{after:60}})]}),
+    ]}))
+  });
+
+  const cell = (t,w,o={}) => new d.TableCell({width:{size:w,type:d.WidthType.DXA},borders:allB,verticalAlign:d.VerticalAlign.CENTER,
+    margins:{top:50,bottom:50,left:100,right:100},children:[new d.Paragraph({alignment:o.al||d.AlignmentType.LEFT,spacing:{after:0},children:[run(t,{bold:!!o.b})]})]});
+  const grid = new d.Table({
+    width:{size:9026,type:d.WidthType.DXA}, columnWidths:m.cols,
+    rows:[ new d.TableRow({tableHeader:true,cantSplit:true,children:m.head.map((h,i)=>cell(h,m.cols[i],{b:true,al:d.AlignmentType.CENTER}))}) ]
+      .concat(m.rows.map((r,i)=>new d.TableRow({cantSplit:true,height:{value:380,rule:d.HeightRule.ATLEAST},children:[
+        cell((i+1)+'.',m.cols[0],{al:d.AlignmentType.CENTER}), cell(r[0],m.cols[1]), cell(r[1],m.cols[2]), cell(r[2],m.cols[3]), cell(r[3],m.cols[4])]})))
+  });
+
+  const sc = s => new d.TableCell({width:{size:4513,type:d.WidthType.DXA},borders:allB,margins:{top:100,bottom:100,left:100,right:100},children: s ? [
+    new d.Paragraph({alignment:d.AlignmentType.CENTER,spacing:{after:0},children:[run(s.t)]}),
+    new d.Paragraph({alignment:d.AlignmentType.CENTER,spacing:{before:1500,after:0},children:[run('('+(s.n||'....................................')+')')]})
+  ] : [new d.Paragraph({children:[]})]});
+  const srows = [];
+  for (let i=0;i<m.sign.length;i+=2) srows.push(new d.TableRow({cantSplit:true,height:{value:2300,rule:d.HeightRule.ATLEAST},children:[sc(m.sign[i]),sc(m.sign[i+1])]}));
+  const signTable = new d.Table({width:{size:9026,type:d.WidthType.DXA},columnWidths:[4513,4513],rows:srows});
+
+  const doc = new d.Document({
+    creator:'Generator Mudes', title:m.title,
+    styles:{default:{document:{run:{font:F,size:22}}}},
+    sections:[{
+      properties:{page:{size:{width:11906,height:16838},margin:{top:1440,bottom:1440,left:1440,right:1440,header:708}}},
+      headers:{default:header},
+      children:[
+        new d.Paragraph({alignment:d.AlignmentType.CENTER,spacing:{before:300,after:0},children:[run(m.title,{bold:true,underline:{type:d.UnderlineType.SINGLE}})]}),
+        new d.Paragraph({alignment:d.AlignmentType.CENTER,spacing:{after:200},children:[run(m.nomor,{bold:true})]}),
+        para(m.p1.map(x=>run(x.t,{bold:x.b})),{alignment:d.AlignmentType.JUSTIFIED}),
+        kvTable,
+        para([],{spacing:{after:0}}),
+        para(m.p2.map(x=>run(x.t,{bold:x.b})),{alignment:d.AlignmentType.JUSTIFIED}),
+        grid,
+        para([],{spacing:{after:0}}),
+        para(m.p3.map(x=>run(x.t)),{alignment:d.AlignmentType.JUSTIFIED}),
+        new d.Paragraph({alignment:d.AlignmentType.CENTER,pageBreakBefore:true,keepNext:true,spacing:{before:240,after:200},children:[run(m.signTitle,{bold:true})]}),
+        signTable,
+        para([],{spacing:{after:0}})
+      ]
+    }]
+  });
+  dl(await d.Packer.toBlob(doc), m.fname+'.docx');
+}
+
+/* ------------------------------------------------------------ export PDF */
+async function exportPdf(m){
+  const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+  const pdf = await PDFDocument.create();
+  pdf.setTitle(m.title); pdf.setCreator('Generator Mudes');
+  const fR = await pdf.embedFont(StandardFonts.TimesRoman), fB = await pdf.embedFont(StandardFonts.TimesRomanBold);
+  const okSet = new Set(fR.getCharacterSet());
+  const fix = s => Array.from(String(s ?? '').replace(/[\r\n\t]+/g,' ')).map(c => okSet.has(c.codePointAt(0)) ? c : '?').join('');
+  const PW=595.28, PH=841.89, ML=72, CW=PW-2*ML, MB=64, FS=11, LH=14.2, K=rgb(0,0,0);
+  const fnt = b => b ? fB : fR;
+  const tw = (t,b,s=FS) => fnt(b).widthOfTextAtSize(t,s);
+  let page, y = 0, bodyTop = 0;
+
+  const text = (t,x,yTop,o={}) => { const s=o.s||FS, b=!!o.b; let xx=x;
+    if (o.c) xx = x - tw(t,b,s)/2;
+    if (t) page.drawText(t,{x:xx,y:PH-yTop-s*0.82,size:s,font:fnt(b),color:K}); };
+  const line = (x1,y1,x2,y2,th) => page.drawLine({start:{x:x1,y:PH-y1},end:{x:x2,y:PH-y2},thickness:th,color:K});
+  const box = (x,yT,w,h,th=0.6) => page.drawRectangle({x,y:PH-yT-h,width:w,height:h,borderWidth:th,borderColor:K});
+
+  function drawKop(){
+    let yy = 44;
+    m.kop.forEach((l,i)=>{
+      const big = i<3, s = big ? (i===2?15:13) : 9.5;
+      text(fix(l), PW/2, yy, {s,b:big,c:true}); yy += s*1.28;
+    });
+    yy += 3; line(ML,yy,PW-ML,yy,1.6); line(ML,yy+3.2,PW-ML,yy+3.2,0.5);
+    return yy + 24;
+  }
+  const newPage = () => { page = pdf.addPage([PW,PH]); bodyTop = drawKop(); y = bodyTop; };
+  const ensure = h => { if (y + h > PH - MB) newPage(); };
+  newPage();
+
+  function wrap(t,b,maxW,s=FS){
+    const out=[]; let cur='';
+    String(t).split(/\s+/).filter(Boolean).forEach(w=>{
+      while (tw(w,b,s) > maxW){ let i=w.length-1; while(i>1 && tw(w.slice(0,i),b,s)>maxW) i--; if(cur){out.push(cur);cur='';} out.push(w.slice(0,i)); w=w.slice(i); }
+      const t2 = cur ? cur+' '+w : w;
+      if (cur && tw(t2,b,s) > maxW){ out.push(cur); cur=w; } else cur=t2;
+    });
+    if (cur) out.push(cur);
+    return out.length ? out : [''];
+  }
+
+  function para(runs, o={}){
+    const after = o.after ?? 8, words=[];
+    runs.forEach(r => fix(r.t).split(/\s+/).filter(Boolean).forEach(w => words.push({w,b:!!r.b,wd:tw(w,!!r.b)})));
+    const sp = tw(' ',false), lines=[]; let cur=[], cw=0;
+    words.forEach(wd => { const add = cur.length ? sp+wd.wd : wd.wd;
+      if (cur.length && cw+add > CW){ lines.push(cur); cur=[wd]; cw=wd.wd; } else { cur.push(wd); cw+=add; } });
+    if (cur.length) lines.push(cur);
+    lines.forEach((ln,li)=>{
+      ensure(LH);
+      const sum = ln.reduce((a,x)=>a+x.wd,0);
+      const gap = (li<lines.length-1 && ln.length>1) ? (CW-sum)/(ln.length-1) : sp;
+      let x = ML; ln.forEach(wd => { text(wd.w,x,y,{b:wd.b}); x += wd.wd+gap; });
+      y += LH;
+    });
+    y += after;
+  }
+
+  // judul
+  ensure(50);
+  const tt = tw(m.title,true);
+  text(m.title, PW/2, y, {b:true,c:true}); line(PW/2-tt/2, y+FS*0.82+2, PW/2+tt/2, y+FS*0.82+2, 0.7);
+  y += LH+3; text(fix(m.nomor), PW/2, y, {b:true,c:true}); y += LH+10;
+
+  para(m.p1);
+
+  // pejabat
+  const lblW = 150;
+  m.kv.forEach(([a,b]) => {
+    const la = wrap(fix(a),false,lblW-8), lb = wrap(fix(b),false,CW-lblW-12);
+    const n = Math.max(la.length, lb.length); ensure(n*LH+3);
+    la.forEach((t,i)=>text(t,ML,y+i*LH)); text(':',ML+lblW-6,y);
+    lb.forEach((t,i)=>text(t,ML+lblW+6,y+i*LH));
+    y += n*LH+3;
+  });
+  y += 6;
+  para(m.p2);
+
+  // tabel penerima
+  const tot = m.cols.reduce((a,b)=>a+b,0), cw = m.cols.map(c=>c/tot*CW), PAD=4;
+  function drawRow(cells, o={}){
+    const wr = cells.map((t,i)=>wrap(fix(t),!!o.b,cw[i]-2*PAD-1));
+    const h = Math.max(o.minH||19, Math.max(...wr.map(l=>l.length))*LH + 6.4);
+    if (y + h > PH - MB){ newPage(); if (!o.head) drawRow(m.head,{b:true,head:true,center:true,minH:30}); }
+    let x = ML;
+    cells.forEach((t,i)=>{
+      box(x,y,cw[i],h);
+      const center = o.center || i===0;
+      wr[i].forEach((l,k)=>{ const ty = y + (h - wr[i].length*LH)/2 + k*LH + 1.6;
+        center ? text(l,x+cw[i]/2,ty,{b:!!o.b,c:true}) : text(l,x+PAD,ty,{b:!!o.b}); });
+      x += cw[i];
+    });
+    y += h;
+  }
+  ensure(70);
+  drawRow(m.head,{b:true,head:true,center:true,minH:30});
+  m.rows.forEach((r,i)=>drawRow([(i+1)+'.',r[0],r[1],r[2],r[3]],{minH:20}));
+  y += 14;
+
+  para(m.p3);
+
+  // tanda tangan
+  const RH = 92, rowsN = Math.ceil(m.sign.length/2);
+  newPage();
+  text(m.signTitle, PW/2, y, {b:true,c:true}); y += LH+8;
+  for (let i=0;i<m.sign.length;i+=2){
+    ensure(RH);
+    [0,1].forEach(c=>{
+      const x = ML + c*CW/2; box(x,y,CW/2,RH);
+      const s = m.sign[i+c]; if(!s) return;
+      text(fix(s.t), x+CW/4, y+9, {c:true});
+      const nm = wrap('('+(fix(s.n)||'....................................')+')',false,CW/2-16);
+      nm.forEach((l,k)=>text(l, x+CW/4, y+RH-12-LH+ (k-(nm.length-1))*LH, {c:true}));
+    });
+    y += RH;
+  }
+  dl(new Blob([await pdf.save()],{type:'application/pdf'}), m.fname+'.pdf');
+}
+
+/* ------------------------------------------------------------ actions */
+async function run(btn, fn){
+  const t = btn.textContent; btn.disabled = true; btn.textContent = 'Memproses…';
+  try { await fn(model()); } catch(e){ console.error(e); alert('Gagal membuat berkas: '+e.message); }
+  finally { btn.disabled = false; btn.textContent = t; }
+}
+$('#btnDocx').addEventListener('click', e => run(e.currentTarget, exportDocx));
+$('#btnPdf').addEventListener('click', e => run(e.currentTarget, exportPdf));
+$('#resetAll').addEventListener('click', () => { if (confirm('Hapus semua isian dan mulai dari awal?')){ S = blank(); try{localStorage.removeItem(LS);}catch(e){} syncForm(); renderDusun(); renderRows(); update(); }});
+
+let upT; function update(){ save(); cancelAnimationFrame(upT); upT = requestAnimationFrame(renderPreview); }
+syncForm(); renderDusun(); renderRows(); renderPreview(); loadWilayah();
+window.__S = () => S; window.__set = (o) => { Object.assign(S,o); syncForm(); renderDusun(); renderRows(); renderPreview(); };
+})();
+</script>
+</body>
+</html>
